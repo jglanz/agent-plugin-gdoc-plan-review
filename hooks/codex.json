@@ -1,0 +1,51 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/dist/gdoc-review.cjs\" hook --host codex",
+            "timeout": 30
+          }
+        ],
+        "matcher": "startup|resume|clear|compact"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/dist/gdoc-review.cjs\" hook --host codex",
+            "timeout": 30
+          }
+        ],
+        "matcher": "^request_user_input$"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/dist/gdoc-review.cjs\" hook --host codex",
+            "timeout": 30
+          }
+        ],
+        "matcher": "^(request_user_input|mcp__.+__(update_drive_file|import_to_google_doc|manage_document_comment))$"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/dist/gdoc-review.cjs\" hook --host codex",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

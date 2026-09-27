@@ -1,5 +1,6 @@
 import path from "node:path"
 
+import { CodexSessionStore, HostKind } from "../host/index.js"
 import { NestedError } from "../errors/index.js"
 import { PlanFileLocator } from "../plan/index.js"
 import { ReviewState } from "../state/index.js"
@@ -64,11 +65,22 @@ export async function locateReview(
   context: HookContext
 ): Promise<ReviewLookup> {
   const { transcript_path: transcriptPath, session_id: sessionId } = input,
-    planFile = await context.locator.locate({
-      explicitPlanFile: null,
-      transcriptPath,
-      sessionId
-    })
+    codexSession =
+      context.host === HostKind.codex
+        ? await new CodexSessionStore(context.store.config.stateDirectory).read(
+            sessionId
+          )
+        : null,
+    planFile =
+      context.host === HostKind.codex
+        ? codexSession == null
+          ? null
+          : codexSession.planFile
+        : await context.locator.locate({
+            explicitPlanFile: null,
+            transcriptPath,
+            sessionId
+          })
 
   if (!isNonEmptyString(planFile)) {
     context.log.debug("No plan file for session %s", sessionId)
@@ -77,6 +89,16 @@ export async function locateReview(
 
   const planSlug = PlanFileLocator.planSlug(planFile),
     state = await context.store.load(planSlug)
+
+  if (
+    state != null &&
+    (state.host !== context.host ||
+      (context.host === HostKind.codex && state.ownerSessionId !== sessionId))
+  ) {
+    throw new NestedError("The review belongs to a different host or session", {
+      context: { sessionId, planSlug }
+    })
+  }
 
   if (state != null && !isSamePlanFile(state.planFile, planFile)) {
     throw new NestedError(

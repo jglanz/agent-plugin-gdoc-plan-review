@@ -1,0 +1,5 @@
+interface:
+  display_name: "Google Doc Plan Review"
+  short_description: "Review plans in Google Docs"
+policy:
+  allow_implicit_invocation: false

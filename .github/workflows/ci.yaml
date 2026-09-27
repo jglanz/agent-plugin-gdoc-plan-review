@@ -65,6 +65,9 @@ jobs:
           JEST_JUNIT_OUTPUT_NAME: jest-junit.xml
         run: pnpm run test:ci
 
+      - name: Validate plugin packages
+        run: pnpm run validate
+
       # Render the JUnit results in the GitHub UI: a check run on the PR plus a
       # per-suite job summary, so nobody has to download the artifact XML.
       - name: Publish test report

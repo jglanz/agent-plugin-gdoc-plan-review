@@ -25,8 +25,9 @@ describe("ReviewStateEnums", () => {
     )
   })
 
-  it("carries the four menu choices", () => {
+  it("carries both hosts menu choices", () => {
     expect(Object.keys(ReviewDecisionChoice)).toEqual([
+      ReviewDecisionChoice.approve_review,
       "approve_auto",
       "approve_manual",
       "check_doc",
@@ -58,8 +59,9 @@ describe("ReviewDecisionSource", () => {
     )
   })
 
-  it("carries exactly the two ways a decision reaches the state file", () => {
+  it("carries the three decision sources", () => {
     expect(Object.keys(ReviewDecisionSource)).toEqual([
+      ReviewDecisionSource.request_user_input,
       "ask_user_question",
       "cli"
     ])

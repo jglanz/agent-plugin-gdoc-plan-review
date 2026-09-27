@@ -2,6 +2,7 @@ import Assert from "node:assert"
 
 import type { CommandModule, Options } from "yargs"
 
+import { CodexSessionStore, getActiveHost, HostKind } from "../../host/index.js"
 import { resolvePluginConfig } from "../../config/index.js"
 import { PlanFileLocator } from "../../plan/index.js"
 import type { ReviewTarget } from "../../state/index.js"
@@ -21,6 +22,8 @@ import {
 
 /** Arguments of the `init` command. */
 export interface InitCommandArguments extends CliState.Arguments {
+  /** Required Codex host session binding. */
+  "session-id"?: string
   /** Plan markdown file the review is keyed by. */
   plan: string
 
@@ -45,6 +48,10 @@ export namespace InitCommand {
 
   /** Option definitions, collocated with the handler. */
   export const OptionDefinitions: Record<string, Options> = {
+    [CodexSessionStore.SessionOption]: {
+      type: "string",
+      describe: "Codex session id supplied by the host hook"
+    },
     plan: PlanOptionDefinition,
     kind: {
       type: "string",
@@ -189,7 +196,32 @@ export function createInitCommand(): CommandModule<
           path: targetPath,
           folderId: null
         },
-        state = createInitialReviewState({ planFile, target, syncMode })
+        host = getActiveHost(),
+        ownerSessionId =
+          host === HostKind.codex
+            ? argv[CodexSessionStore.SessionOption]
+            : null,
+        state = createInitialReviewState({
+          planFile,
+          target,
+          syncMode,
+          host,
+          ownerSessionId
+        })
+
+      if (host === HostKind.codex) {
+        Assert.ok(
+          isNonEmptyString(ownerSessionId),
+          "Codex init requires --session-id from the host hook"
+        )
+        const session = await new CodexSessionStore(
+          store.config.stateDirectory
+        ).read(ownerSessionId)
+        Assert.ok(
+          session != null && session.planFile === planFile,
+          "Bind the complete plan with snapshot before Codex init"
+        )
+      }
 
       await store.save(state)
       printReviewState(state)

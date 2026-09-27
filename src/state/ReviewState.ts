@@ -2,6 +2,7 @@ import Assert from "node:assert"
 
 import { z } from "zod"
 
+import { getActiveHost, HostKind } from "../host/index.js"
 import { NestedError } from "../errors/index.js"
 import { isNonEmptyString, isRecord, isString } from "../utils/index.js"
 import {
@@ -308,7 +309,17 @@ export const ReviewCommentsSchema = z
 
 /** The whole `reviews/<plan-slug>.json` document; the single source of truth for a review. */
 export const ReviewStateSchema = z.object({
-  version: z.number().int(),
+  version: z
+    .number()
+    .int()
+    .refine(
+      value =>
+        value === ReviewState.LegacyVersion || value === ReviewState.Version,
+      "Unsupported review state version"
+    )
+    .transform(() => ReviewState.Version),
+  host: z.enum(HostKind).default(HostKind.claude),
+  ownerSessionId: z.string().min(1).nullable().default(null),
   status: z.enum(ReviewStatus),
   planFile: z.string(),
   createdAt: z.string(),
@@ -333,7 +344,9 @@ export interface ReviewState extends z.infer<typeof ReviewStateSchema> {}
 /** Constants and sub-types of {@link ReviewState}. */
 export namespace ReviewState {
   /** Schema version of the persisted document; bump when a migration is needed. */
-  export const Version = 1
+  export const Version = 2
+  /** Existing Claude-only documents are migrated in memory without losing state. */
+  export const LegacyVersion = 1
 
   /**
    * Target keys an earlier design persisted and this one has no use for. They
@@ -354,6 +367,10 @@ export namespace ReviewState {
 
   /** What `createInitialReviewState` needs; everything else starts empty. */
   export interface InitInput {
+    /** Host owning the review; legacy callers default to Claude. */
+    host?: HostKind
+    /** Codex session owning this review, otherwise null. */
+    ownerSessionId?: string
     /** Absolute path of the plan markdown file under review. */
     planFile: string
 
@@ -374,7 +391,13 @@ export namespace ReviewState {
 export function createInitialReviewState(
   input: ReviewState.InitInput
 ): ReviewState {
-  const { planFile, target, syncMode = SyncMode.content } = input
+  const {
+    planFile,
+    target,
+    syncMode = SyncMode.content,
+    host = getActiveHost(),
+    ownerSessionId = null
+  } = input
 
   Assert.ok(
     isNonEmptyString(planFile),
@@ -385,6 +408,8 @@ export function createInitialReviewState(
   return ReviewStateCodec.assertValid(
     {
       version: ReviewState.Version,
+      host,
+      ownerSessionId,
       status: ReviewStatus.setup,
       planFile,
       createdAt: new Date().toISOString(),

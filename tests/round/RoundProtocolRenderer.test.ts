@@ -142,6 +142,20 @@ describe("RoundProtocolRenderer with an invalid template", () => {
     ).toThrow(RoundProtocolRenderer.UnknownPlaceholderMessage)
   })
 
+  it("fails when the shared workflow is missing", () => {
+    const templateFile = resolve(
+      scratchDir,
+      PluginRoot.TemplateSubpath.split("/").pop()
+    )
+    writeFileSync(templateFile, RoundProtocolRenderer.SharedWorkflowMarker)
+    expect(() =>
+      new RoundProtocolRenderer({
+        pluginRoot: scratchDir,
+        templateFile
+      }).renderRound(newInput())
+    ).toThrow()
+  })
+
   it("substitutes in one pass, so a value carrying a token is left alone", () => {
     const templateFile = resolve(scratchDir, "one-pass.md")
 

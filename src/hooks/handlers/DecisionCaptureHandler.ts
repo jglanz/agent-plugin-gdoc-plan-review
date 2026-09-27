@@ -252,6 +252,10 @@ function newContextMessage(
 
   return match(choice)
     .with(
+      ReviewDecisionChoice.approve_review,
+      () => "Use the native Codex review adapter for this answer."
+    )
+    .with(
       ReviewDecisionChoice.approve_auto,
       ReviewDecisionChoice.approve_manual,
       () => DecisionCaptureHandler.newApprovedMessage(mode)

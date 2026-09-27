@@ -4,17 +4,13 @@ import { isDocumentId, renderSafeDocumentUrl } from "../../google/index.js"
 import { Logger } from "../../logging/index.js"
 import { sha256OfFile } from "../../plan/index.js"
 import { RoundProtocolRenderer } from "../../round/index.js"
-import {
-  ReviewDecisionChoice,
-  ReviewState,
-  ReviewStatus
-} from "../../state/index.js"
+import { ReviewState, ReviewStatus } from "../../state/index.js"
 import type { HookContext } from "../HookContext.js"
 import type { PreToolUseHookInput } from "../HookInput.js"
 import { HookOutput } from "../HookOutput.js"
 import { locateReview } from "../ReviewLookup.js"
 import type { HandlerResult } from "./HandlerResult.js"
-import { PermissionRequestHandler } from "./PermissionRequestHandler.js"
+import { evaluateReview, ReviewReadiness } from "../../review/index.js"
 
 /** Helpers of the `ExitPlanMode` gate. */
 export namespace ExitPlanModeGateHandler {
@@ -109,7 +105,9 @@ async function denyForeignPlan(
   planFile: string,
   context: HookContext
 ): HandlerResult {
-  const active = await context.store.listActive()
+  const active = (await context.store.listActive()).filter(
+    state => state.host === context.host
+  )
   if (active.length === 0) {
     return HookOutput.none()
   }
@@ -170,43 +168,32 @@ async function runExitPlanModeGate(
   }
 
   const planSha256 = await sha256OfFile(planFile),
-    { lastSync, decision } = state
+    readiness = evaluateReview(state, planSha256, context.now())
 
-  if (lastSync == null || lastSync.planSha256 !== planSha256) {
-    return HookOutput.preToolUseDeny(renderer.renderRound(renderInput))
-  }
-
-  if (
-    decision == null ||
-    decision.planSha256 !== planSha256 ||
-    !PermissionRequestHandler.isDecisionUsable(decision, context.now())
-  ) {
-    return HookOutput.preToolUseDeny(
-      renderer.renderPresentMenu({
-        ...renderInput,
-        menuRevision: state.revision
-      })
+  return match(readiness)
+    .with(ReviewReadiness.sync, () =>
+      HookOutput.preToolUseDeny(renderer.renderRound(renderInput))
     )
-  }
-
-  return match(decision.choice)
-    .with(ReviewDecisionChoice.check_doc, () =>
-      HookOutput.preToolUseDeny(renderer.renderRecheckDoc(renderInput))
-    )
-    .with(ReviewDecisionChoice.other, () =>
+    .with(ReviewReadiness.menu, () =>
       HookOutput.preToolUseDeny(
-        renderer.renderFollowUserInstruction({
+        renderer.renderPresentMenu({
           ...renderInput,
-          userInstruction: decision.text
+          menuRevision: state.revision
         })
       )
     )
-    .with(
-      ReviewDecisionChoice.approve_auto,
-      ReviewDecisionChoice.approve_manual,
-      () => HookOutput.none()
+    .with(ReviewReadiness.check_doc, () =>
+      HookOutput.preToolUseDeny(renderer.renderRecheckDoc(renderInput))
     )
-    .exhaustive()
+    .with(ReviewReadiness.revise, () =>
+      HookOutput.preToolUseDeny(
+        renderer.renderFollowUserInstruction({
+          ...renderInput,
+          userInstruction: state.decision.text
+        })
+      )
+    )
+    .otherwise(() => HookOutput.none())
 }
 
 /**

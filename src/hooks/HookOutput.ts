@@ -108,6 +108,19 @@ export interface SessionStartHookOutput {
   hookSpecificOutput: SessionStartHookPayload
 }
 
+/** Codex continuation feedback; this does not veto native Plan-mode exit. */
+export interface StopHookOutput {
+  /** Request one continuation. */
+  decision: StopDecision
+  /** Concrete missing review step. */
+  reason: string
+}
+
+/** Supported Codex stop decision. */
+export enum StopDecision {
+  block = "block"
+}
+
 /**
  * Builders of the JSON a hook prints on stdout. Every handler returns one of
  * these values — or `null`, which means "print nothing", i.e. leave the
@@ -120,6 +133,12 @@ export namespace HookOutput {
     | PostToolUseHookOutput
     | PermissionRequestHookOutput
     | SessionStartHookOutput
+    | StopHookOutput
+
+  /** Requests one bounded Codex continuation. */
+  export function stopReminder(reason: string): StopHookOutput {
+    return { decision: StopDecision.block, reason }
+  }
 
   /** Reason attached to an allow when the caller states none. */
   export const DefaultAllowReason = "Allowed by the gdoc-review plugin"

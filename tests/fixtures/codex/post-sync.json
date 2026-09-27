@@ -1,0 +1,24 @@
+{
+  "session_id": "codex-fixture-session",
+  "transcript_path": null,
+  "permission_mode": "plan",
+  "turn_id": "codex-fixture-turn",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "mcp__gworkspace-personal__update_drive_file",
+  "tool_use_id": "codex-sync-fixture",
+  "tool_input": {
+    "file_id": "1FixtureDocIdAbCdEfGhIjKlMnOpQrStUvWxYz01",
+    "content": "# Fixture plan\n\nCache the results in Redis.\n",
+    "source_format": "md",
+    "mode": "replace"
+  },
+  "tool_response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Successfully updated file 'FixturePlan'\nFile ID: 1FixtureDocIdAbCdEfGhIjKlMnOpQrStUvWxYz01\nMode: replace\nReplaced content"
+      }
+    ],
+    "isError": false
+  }
+}

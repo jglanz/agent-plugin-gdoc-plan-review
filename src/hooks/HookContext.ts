@@ -1,4 +1,5 @@
 import path from "node:path"
+import { getActiveHost, HostKind } from "../host/index.js"
 
 import {
   PluginConfig,
@@ -18,6 +19,8 @@ import { ReviewStateStore } from "../state/index.js"
  * happens inside one, so every decision is reproducible from a fixture.
  */
 export interface HookContext {
+  /** Host whose hook input and plan binding are in use. */
+  host: HostKind
   /** Reader and writer of `reviews/` and `sessions/`. */
   store: ReviewStateStore
 
@@ -53,6 +56,8 @@ export namespace HookContext {
 
   /** What the caller may inject; every field is resolved when omitted. */
   export interface Options {
+    /** Host adapter; defaults to the explicit CLI host. */
+    host?: HostKind
     /** State directory holding `reviews/`, `sessions/` and the log. */
     stateDirectory?: string
 
@@ -121,8 +126,9 @@ export async function createHookContext(
   options: HookContext.Options = {}
 ): Promise<HookContext> {
   const {
-    stateDirectory = resolveStateDirectory(),
-    pluginRoot = resolvePluginRoot(),
+    host = getActiveHost(),
+    stateDirectory = resolveStateDirectory(host),
+    pluginRoot = resolvePluginRoot(host),
     store = await ReviewStateStore.create({ stateDirectory }),
     config = await resolvePluginConfig({ stateDirectory }),
     locator = new PlanFileLocator(store),
@@ -135,6 +141,7 @@ export async function createHookContext(
   } = options
 
   return {
+    host,
     store,
     config,
     locator,

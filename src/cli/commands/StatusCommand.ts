@@ -1,4 +1,5 @@
 import type { CommandModule, Options } from "yargs"
+import { getActiveHost } from "../../host/index.js"
 
 import { renderSafeDocumentUrl } from "../../google/index.js"
 import { PlanFileLocator } from "../../plan/index.js"
@@ -201,7 +202,9 @@ export function createStatusCommand(): CommandModule<
         store = await createCliStore()
 
       if (!isNonEmptyString(planFile)) {
-        const states = await store.listActive()
+        const states = (await store.listActive()).filter(
+          state => state.host === getActiveHost()
+        )
         if (json) {
           printJson(states)
           return

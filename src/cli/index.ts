@@ -4,6 +4,7 @@ import yargs from "yargs"
 import type { Argv, ParserConfigurationOptions } from "yargs"
 
 import { NestedError } from "../errors/index.js"
+import { HostKind, HostRuntime } from "../host/index.js"
 import { getLogger, writeStderr } from "../logging/index.js"
 import {
   appendCliState,
@@ -19,7 +20,10 @@ import {
   createReactivateCommand,
   createRegisterCommand,
   createStatusCommand,
-  createSyncedCommand
+  createSyncedCommand,
+  createSnapshotCommand,
+  createCapabilitiesCommand,
+  createMenuCommand
 } from "./commands/index.js"
 
 /** Constants of the CLI entry point. */
@@ -29,11 +33,11 @@ export namespace Cli {
 
   /** Usage line shown above the command list. */
   export const Usage =
-    "$0 <command> [options] — Google Doc plan reviews for Claude Code"
+    "$0 <command> [options] — Google Doc plan reviews for Claude and Codex"
 
   /** Trailing note shown under the command list. */
   export const Epilogue =
-    "Review state lives in $CLAUDE_CONFIG_DIR/gdoc-review; diagnostics go to its log.jsonl."
+    "Select --host codex for Codex state; legacy calls use Claude. Diagnostics go to the selected state directory log.jsonl."
 
   /** At least one command is always required; there is no default action. */
   export const MinimumCommandCount = 1
@@ -89,6 +93,13 @@ function assertParsed(message: string, cause: Error): never {
  */
 export function createCliParser(argv: string[]): Argv {
   const parser: Argv = yargs(argv)
+    .option(HostRuntime.HostOption, {
+      type: "string",
+      choices: Object.values(HostKind),
+      default: HostKind.claude,
+      global: true,
+      describe: "Host protocol and state directory (claude or codex)"
+    })
     .parserConfiguration(Cli.ParserConfiguration)
     .scriptName(Cli.ScriptName)
     .usage(Cli.Usage)
@@ -109,6 +120,9 @@ export function createCliParser(argv: string[]): Argv {
     .command(createCancelCommand())
     .command(createReactivateCommand())
     .command(createHookCommand())
+    .command(createSnapshotCommand())
+    .command(createCapabilitiesCommand())
+    .command(createMenuCommand())
     .demandCommand(Cli.MinimumCommandCount)
     .strict()
     .help()

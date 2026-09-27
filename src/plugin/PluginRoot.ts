@@ -3,6 +3,7 @@ import { existsSync } from "node:fs"
 import { resolve } from "node:path"
 
 import { GDocReview } from "../Constants.js"
+import { getActiveHost, HostKind, HostRuntime } from "../host/index.js"
 import { getLogger } from "../logging/index.js"
 import { isNonEmptyString } from "../utils/index.js"
 
@@ -99,9 +100,12 @@ export function findPluginRoot(startDirectory: string): string {
  *
  * @returns Absolute path of the plugin root.
  */
-export function resolvePluginRoot(): string {
-  const { [GDocReview.PluginRootEnvironmentKey]: pluginRootFromEnvironment } =
-    process.env
+export function resolvePluginRoot(host: HostKind = getActiveHost()): string {
+  const rootEnvironmentKey =
+      host === HostKind.codex
+        ? HostRuntime.CodexRootEnvironmentKey
+        : GDocReview.PluginRootEnvironmentKey,
+    { [rootEnvironmentKey]: pluginRootFromEnvironment } = process.env
 
   if (!isNonEmptyString(pluginRootFromEnvironment)) {
     return findPluginRoot(__dirname)

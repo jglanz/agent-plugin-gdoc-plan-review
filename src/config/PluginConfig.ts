@@ -5,6 +5,7 @@ import { defaults } from "lodash"
 import { z } from "zod"
 
 import { GDocReview } from "../Constants.js"
+import { getActiveHost, HostKind, HostRuntime } from "../host/index.js"
 import { getLogger } from "../logging/logger.js"
 import { LogLevel } from "../logging/LogLevel.js"
 import { PermissionMode, SyncMode } from "../state/ReviewStateEnums.js"
@@ -124,9 +125,21 @@ export function setActiveStateDirectory(stateDirectory: string): void {
  * @returns Absolute path of the plugin state directory. The directory is not
  *   created here; writers create it on demand.
  */
-export function resolveStateDirectory(): string {
+export function resolveStateDirectory(
+  host: HostKind = getActiveHost()
+): string {
   if (isNonEmptyString(activeStateDirectory)) {
     return activeStateDirectory
+  }
+
+  if (host === HostKind.codex) {
+    const { [HostRuntime.CodexHomeEnvironmentKey]: codexHome } = process.env
+    return path.join(
+      isNonEmptyString(codexHome)
+        ? codexHome
+        : path.join(homedir(), HostRuntime.CodexDirectoryName),
+      GDocReview.StateDirName
+    )
   }
 
   const { [PluginConfig.ConfigDirectoryEnvironmentKey]: configuredDirectory } =

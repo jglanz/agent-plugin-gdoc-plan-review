@@ -1,14 +1,59 @@
-# claude-gdoc-review-plugin
+# Google Doc Plan Review
 
-A Claude Code plugin that turns plan approval into a Google Doc review round.
-Instead of the built-in `ExitPlanMode` dialog, every attempt to present a plan
-first syncs the plan markdown into a Google Doc, has Claude answer and resolve
-the reviewer comments the new revision addresses, posts a revision-log entry,
-and then shows its own approval menu with the Doc URL — so a plan is approved
-the way a document is approved, with the comment thread as the record. The
-plugin is inert until you run `/gdoc-review` for a plan: with no review state
-for the current plan file, the hooks print nothing and Claude Code behaves
-exactly as it does without the plugin.
+A plugin with a shared review engine, a Claude Code integration, and a Codex
+native adapter. **Codex in-Plan writes remain unverified and release-blocked.**
+
+The existing Claude Code integration turns plan approval into a Google Doc
+review round. Instead of the built-in `ExitPlanMode` dialog, every attempt to
+present a plan first syncs the plan markdown into a Google Doc, has Claude
+answer and resolve the reviewer comments the new revision addresses, posts a
+revision-log entry, and then shows its own approval menu with the Doc URL — so a
+plan is approved the way a document is approved, with the comment thread as the
+record. The plugin is inert until you run `/gdoc-review` for a plan: with no
+review state for the current plan file, the hooks print nothing and Claude Code
+behaves exactly as it does without the plugin.
+
+## Codex support status
+
+The native adapter includes session-bound complete plan snapshots, host-isolated
+state, successful-sync recording, native question/answer capture, and bounded
+resume/stop reminders. It never changes Codex permissions or exits Plan mode.
+Run the committed bundle for an honest capability report:
+
+```bash
+node dist/gdoc-review.cjs capabilities --host codex
+```
+
+`inPlanWritesVerified: false` is a release prerequisite, not an opt-out flag.
+Stock Codex must provide a supported exception for snapshot and Google Doc
+review writes while in Plan mode. Until an end-to-end test proves that
+exception, the skill reports the blocker. Do not substitute an out-of-mode
+workflow or consider unit tests evidence of live client support. See
+[the Codex procedure](skills/gdoc-review/CODEX.md) and
+[release checks](docs/codex-validation.md).
+
+The generic plugin/skill authoring helpers reject Claude's retained
+explicit-invocation frontmatter. The release checks record this compatibility
+limitation separately from the passing repository tests and package contracts.
+
+The root portable manifest selects `hooks/codex.json` through its OpenAI
+extension. `.codex-plugin/plugin.json` supplies compatibility metadata; an older
+client that ignores the portable extension is not supported. Claude continues
+using `.claude-plugin/plugin.json` and `hooks/hooks.json`.
+
+Install from a local Codex marketplace using the plugin-creator workflow,
+pointing its `gdoc-plan-review-plugin` entry at this checkout. Enable the
+plugin, review and trust **the Codex hook definitions**, then start a new task.
+Connect the same workspace-mcp Docs/Drive server in Codex separately. Installing
+the plugin does not connect an account or trust its hooks automatically.
+
+State defaults to `$CODEX_HOME/gdoc-review` (otherwise `~/.codex/gdoc-review`)
+for Codex and retains `$CLAUDE_CONFIG_DIR/gdoc-review` for Claude. All existing
+CLI calls default to Claude. Use `--host codex` explicitly for Codex operations;
+`--state-dir` overrides either host's default. Version-1 Claude states migrate
+in memory to version 2; their active reviews and approval provenance are
+retained. Codex never reads Claude transcript attachments or borrows another
+host's review.
 
 ## The menu
 
@@ -433,7 +478,7 @@ pnpm build   # tsc -b (typecheck + lib/) then esbuild → dist/gdoc-review.cjs
 pnpm lint    # eslint .
 pnpm test    # build + jest (unit + spawned-bundle integration tests)
 pnpm format  # prettier
-pnpm validate  # claude plugin validate . (a no-op when the CLI is absent)
+pnpm validate  # Claude validator (when installed) + Codex package contracts
 ```
 
 `dist/gdoc-review.cjs` is the only runtime artifact and it is **committed**: a

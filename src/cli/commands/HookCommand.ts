@@ -1,4 +1,6 @@
 import path from "node:path"
+import type { PreToolUseHookOutput } from "../../hooks/HookOutput.js"
+import { getActiveHost, HostKind } from "../../host/index.js"
 
 import type { CommandModule, Options } from "yargs"
 import { z } from "zod"
@@ -17,6 +19,7 @@ import {
   FsUtils,
   getValue,
   isNonEmptyString,
+  isRecord,
   readTextFileOrNull
 } from "../../utils/index.js"
 import type { CliState } from "../CliState.js"
@@ -47,7 +50,7 @@ export interface HookCommandArguments extends CliState.Arguments {
 export namespace HookCommand {
   /** One-line description shown in `--help`. */
   export const Description =
-    "Run one Claude Code hook: read the payload from stdin, print the hook JSON"
+    "Run one selected host hook: read the payload from stdin, print the hook JSON"
 
   /** Option definitions, collocated with the handler. */
   export const OptionDefinitions: Record<string, Options> = {
@@ -130,12 +133,12 @@ export namespace HookCommand {
    * @param gated Whether the payload was recognised as the gated event.
    * @returns A deny for a gated `ExitPlanMode`, nothing for anything else.
    */
-  export function newFailureOutputForRaw(gated: boolean): HookOutput.Any {
+  export function newFailureOutputForRaw(gated: boolean): PreToolUseHookOutput {
     return gated
       ? HookOutput.preToolUseDeny(
           ExitPlanModeGateHandler.newFailureReason(resolveFailureLogFile())
         )
-      : HookOutput.none()
+      : null
   }
 }
 
@@ -215,7 +218,18 @@ async function runHook(inputFile: string): Promise<void> {
       HookCommand.FailureMessage,
       cause instanceof Error ? cause.message : String(cause)
     )
-    printOutput(HookCommand.newFailureOutputForRaw(gated))
+    const codexQuestion =
+      getActiveHost() === HostKind.codex &&
+      isRecord(json) &&
+      json.hook_event_name === HookEventName.PreToolUse &&
+      json.tool_name === HostToolName.request_user_input
+    printOutput(
+      codexQuestion
+        ? HookOutput.preToolUseDeny(ExitPlanModeGateHandler.FailureReason)
+        : HookCommand.newFailureOutputForRaw(
+            gated && getActiveHost() === HostKind.claude
+          )
+    )
   }
 }
 

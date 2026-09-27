@@ -8,6 +8,7 @@ export enum ReviewStatus {
 
 /** The user's choice on the "GDoc Review" menu, captured by the AskUserQuestion PostToolUse hook or the `decision` command. */
 export enum ReviewDecisionChoice {
+  approve_review = "approve_review",
   approve_auto = "approve_auto",
   approve_manual = "approve_manual",
   check_doc = "check_doc",
@@ -60,6 +61,7 @@ export enum PermissionMode {
  * reach, so it is recorded but never auto-approved.
  */
 export enum ReviewDecisionSource {
+  request_user_input = "request_user_input",
   ask_user_question = "ask_user_question",
   cli = "cli"
 }

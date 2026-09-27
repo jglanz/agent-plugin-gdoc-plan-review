@@ -1,3 +1,7 @@
+import {
+  isDecisionUsable as isReviewDecisionUsable,
+  ReviewApproval
+} from "../../review/index.js"
 import { sha256OfFile } from "../../plan/index.js"
 import type { ReviewDecision, ReviewState } from "../../state/index.js"
 import { ReviewDecisionSource, ReviewStatus } from "../../state/index.js"
@@ -18,7 +22,7 @@ export namespace PermissionRequestHandler {
    * not evidence about a much later `ExitPlanMode`, and the built-in dialog
    * takes over instead.
    */
-  export const MaxDecisionAgeMs = 1_800_000
+  export const MaxDecisionAgeMs = ReviewApproval.MaxDecisionAgeMs
 
   /**
    * Reports whether a recorded decision may still answer a permission prompt
@@ -40,14 +44,7 @@ export namespace PermissionRequestHandler {
     decision: ReviewDecision,
     now: Date
   ): boolean {
-    if (decision == null || decision.consumedAt != null) {
-      return false
-    }
-    const recordedAtMs = Date.parse(decision.at),
-      ageMs = now.getTime() - recordedAtMs
-    return (
-      Number.isFinite(recordedAtMs) && ageMs >= 0 && ageMs < MaxDecisionAgeMs
-    )
+    return isReviewDecisionUsable(decision, now)
   }
 }
 

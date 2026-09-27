@@ -1,4 +1,5 @@
 import Assert from "node:assert"
+import { getActiveHost } from "../host/index.js"
 import path from "node:path"
 
 import type { Options } from "yargs"
@@ -131,5 +132,9 @@ export async function assertReviewState(
 ): Promise<ReviewState> {
   const state = await store.load(PlanFileLocator.planSlug(planFile))
   Assert.ok(state != null, CommandSupport.newMissingReviewMessage(planFile))
+  Assert.ok(
+    state.host === getActiveHost(),
+    "The review belongs to another host; select its --host explicitly"
+  )
   return state
 }

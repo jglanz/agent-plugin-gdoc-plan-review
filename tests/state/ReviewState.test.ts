@@ -86,7 +86,7 @@ describe("ReviewState", () => {
 
     it("pretty-prints so the file stays readable while debugging", () => {
       expect(ReviewStateCodec.serialize(createState())).toContain(
-        '\n  "version": 1'
+        `\n  "version": ${ReviewState.Version}`
       )
     })
 

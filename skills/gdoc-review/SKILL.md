@@ -1,15 +1,24 @@
 ---
 name: gdoc-review
 description:
-  "Set up a Google Doc review for the current plan: creates/finds the Doc in
-  your Drive, then every ExitPlanMode becomes a sync-and-review round with a
-  custom approval menu"
+  "Review a plan in Google Docs with Claude or the Codex native adapter. Claude
+  supports automatic approval rounds; Codex in-Plan writes remain gated on
+  verified host support."
 argument-hint: 'PersonalDrive|SharedDrive [DriveName] "folder/path/DocName"'
 disable-model-invocation: true
 allowed-tools: Bash(node "${CLAUDE_PLUGIN_ROOT}/dist/gdoc-review.cjs" *)
 ---
 
 # Set up a Google Doc plan review
+
+## Host routing
+
+In **Codex**, read [CODEX.md](CODEX.md) and follow that adapter exclusively. The
+Claude tools, plan-file discovery, permission grants, and shell environment
+below apply only to **Claude Code**. Never use skill text to override host
+Plan-mode instructions.
+
+## Claude Code setup
 
 Turn the current plan into a Google Doc that reviewers can comment on. After
 setup, every `ExitPlanMode` becomes a review round: the plan is synced into the

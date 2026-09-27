@@ -8,6 +8,7 @@ import { NestedError } from "../errors/index.js"
  * it is the discriminator of {@link HookInputSchema}.
  */
 export enum HookEventName {
+  Stop = "Stop",
   PreToolUse = "PreToolUse",
   PostToolUse = "PostToolUse",
   PermissionRequest = "PermissionRequest",
@@ -20,6 +21,7 @@ export enum HookEventName {
  * {@link WorkspaceToolName.parse} instead of this enum.
  */
 export enum HostToolName {
+  request_user_input = "request_user_input",
   ExitPlanMode = "ExitPlanMode",
   Bash = "Bash",
   AskUserQuestion = "AskUserQuestion"
@@ -40,7 +42,7 @@ export enum HostToolName {
  */
 export const HookInputBaseSchema = z.object({
   session_id: z.string(),
-  transcript_path: z.string(),
+  transcript_path: z.string().nullable(),
   cwd: z.string().optional(),
   permission_mode: z.unknown().optional()
 })
@@ -80,6 +82,17 @@ export const SessionStartHookInputSchema = HookInputBaseSchema.extend({
   source: z.string().optional()
 })
 
+/** Codex end-of-turn reminder input; never a plan-mode exit event. */
+export const StopHookInputSchema = HookInputBaseSchema.extend({
+  hook_event_name: z.literal(HookEventName.Stop),
+  turn_id: z.string(),
+  stop_hook_active: z.boolean(),
+  last_assistant_message: z.string().nullable().optional()
+})
+
+/** Validated Codex end-of-turn input. */
+export interface StopHookInput extends z.infer<typeof StopHookInputSchema> {}
+
 /** A `PreToolUse` payload, as validated by {@link PreToolUseHookInputSchema}. */
 export interface PreToolUseHookInput extends z.infer<
   typeof PreToolUseHookInputSchema
@@ -105,7 +118,8 @@ export const HookInputSchema = z.discriminatedUnion("hook_event_name", [
   PreToolUseHookInputSchema,
   PostToolUseHookInputSchema,
   PermissionRequestHookInputSchema,
-  SessionStartHookInputSchema
+  SessionStartHookInputSchema,
+  StopHookInputSchema
 ])
 
 /** One validated hook payload; narrow it on `hook_event_name`. */

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os"
 import path from "node:path"
 
 import {
+  HostKind,
   appendCliState,
   CliState,
   cliState,
@@ -79,6 +80,7 @@ describe("resolveCliStateDirectory", () => {
     expect(resolveCliStateDirectory()).toBe(absolute)
     expect(createCliStoreOptions()).toEqual({ stateDirectory: absolute })
     expect(createCliHookContextOptions()).toEqual({
+      host: HostKind.claude,
       stateDirectory: absolute
     })
   })
@@ -91,7 +93,7 @@ describe("resolveCliStateDirectory", () => {
       path.join(configDirectory, "gdoc-review")
     )
     expect(createCliStoreOptions()).toEqual({})
-    expect(createCliHookContextOptions()).toEqual({})
+    expect(createCliHookContextOptions()).toEqual({ host: HostKind.claude })
   })
 })
 

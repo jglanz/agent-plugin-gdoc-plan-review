@@ -7,6 +7,12 @@ import {
   setActiveStateDirectory
 } from "../config/index.js"
 import type { HookContext } from "../hooks/index.js"
+import {
+  getActiveHost,
+  HostKind,
+  HostRuntime,
+  setActiveHost
+} from "../host/index.js"
 import { ReviewStateStore } from "../state/index.js"
 import { isNonEmptyString } from "../utils/index.js"
 
@@ -37,12 +43,14 @@ export namespace CliState {
   export const StateDirectoryOptionDefinition: Options = {
     type: "string",
     describe:
-      "Plugin state directory: reviews/, sessions/ and the config.json and log.jsonl this invocation reads and writes (default: $CLAUDE_CONFIG_DIR/gdoc-review)",
+      "Plugin state directory: reviews/, sessions/ and the config.json and log.jsonl this invocation reads and writes (default: the selected host configuration directory plus gdoc-review)",
     global: true
   }
 
   /** The parsed globals the middleware reads. */
   export interface Arguments {
+    /** Hook protocol and default state location; omitted means Claude. */
+    host?: HostKind
     /**
      * Value of `--state-dir`, as the user typed it. The key is the option's own
      * spelling: the parser registers no camelCase alias
@@ -66,6 +74,8 @@ export namespace CliState {
  * @param argv The parsed arguments of whichever command is running.
  */
 export function appendCliState(argv: ArgumentsCamelCase): void {
+  const { [HostRuntime.HostOption]: host = HostKind.claude } = argv
+  setActiveHost(host as HostKind)
   const { [CliState.StateDirectoryOption]: stateDir } = argv
   cliState.stateDirectory = isNonEmptyString(stateDir)
     ? path.resolve(stateDir)
@@ -80,6 +90,7 @@ export function appendCliState(argv: ArgumentsCamelCase): void {
  * that runs the parser twice in one process — reset it between runs.
  */
 export function resetCliState(): void {
+  setActiveHost(HostKind.claude)
   cliState.stateDirectory = null
   setActiveStateDirectory(null)
 }
@@ -117,7 +128,10 @@ export function createCliStoreOptions(): ReviewStateStore.Options {
  */
 export function createCliHookContextOptions(): HookContext.Options {
   const { stateDirectory } = cliState
-  return isNonEmptyString(stateDirectory) ? { stateDirectory } : {}
+  return {
+    host: getActiveHost(),
+    ...(isNonEmptyString(stateDirectory) ? { stateDirectory } : {})
+  }
 }
 
 /**

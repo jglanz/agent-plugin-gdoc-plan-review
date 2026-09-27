@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "gdoc-plan-review-plugin",
+  "version": "0.1.0",
+  "description": "Google Doc plan reviews for Claude and Codex; Codex in-Plan writes await host verification",
+  "extensions": {
+    "com.openai": {
+      "hooks": "./hooks/codex.json",
+      "interface": {
+        "displayName": "Google Doc Plan Review",
+        "shortDescription": "Review plans in Google Docs",
+        "longDescription": "Shared review engine for Claude and Codex. Codex in-Plan writes are not yet verified; consult the capability report before use.",
+        "developerName": "Jonathan Glanz",
+        "category": "Productivity",
+        "capabilities": [
+          "Interactive",
+          "Write"
+        ],
+        "defaultPrompt": [
+          "Review the current plan in Google Docs."
+        ]
+      }
+    }
+  }
+}

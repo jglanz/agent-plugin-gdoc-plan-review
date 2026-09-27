@@ -74,6 +74,7 @@ export namespace DecisionCommand {
    */
   export function labelFor(choice: ReviewDecisionChoice, text: string): string {
     return match(choice)
+      .with(ReviewDecisionChoice.approve_review, () => "Approve reviewed plan")
       .with(
         ReviewDecisionChoice.approve_auto,
         () => `${ReviewMenuLabel.approveAuto}`

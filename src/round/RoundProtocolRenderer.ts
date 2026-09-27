@@ -94,7 +94,7 @@ export class RoundProtocolRenderer {
 
     const values = this.createPlaceholderValues(input),
       unknown: string[] = [],
-      rendered = this.assertTemplate().replace(
+      rendered = this.readExpandedTemplate().replace(
         RoundProtocolRenderer.PlaceholderPattern,
         (token: string, name: string) => {
           if (!(name in values)) {
@@ -245,6 +245,24 @@ export class RoundProtocolRenderer {
     return this.template
   }
 
+  private readExpandedTemplate(): string {
+    const template = this.assertTemplate()
+    if (!template.includes(RoundProtocolRenderer.SharedWorkflowMarker))
+      return template
+    const workflow = readFileSync(
+      resolve(
+        this.config.pluginRoot,
+        RoundProtocolRenderer.SharedWorkflowSubpath
+      ),
+      FsUtils.Encoding
+    )
+    Assert.ok(workflow.length > 0, RoundProtocolRenderer.EmptyTemplateMessage)
+    return template.replace(
+      RoundProtocolRenderer.SharedWorkflowMarker,
+      () => workflow
+    )
+  }
+
   private createPlaceholderValues(
     input: RoundProtocolRenderer.Input
   ): RoundProtocolRenderer.PlaceholderValues {
@@ -272,6 +290,11 @@ export class RoundProtocolRenderer {
 
 /** Constants, sub-types and pure helpers of {@link RoundProtocolRenderer}. */
 export namespace RoundProtocolRenderer {
+  /** Shared document workflow included before ordinary placeholder substitution. */
+  export const SharedWorkflowMarker = "{{sharedWorkflow}}"
+  /** Shared procedure consumed by both host instructions. */
+  export const SharedWorkflowSubpath = "skills/gdoc-review/WORKFLOW.md"
+
   /** What the caller provides. */
   export interface Options {
     /** Root of the installed plugin bundle; defaults to `CLAUDE_PLUGIN_ROOT`. */

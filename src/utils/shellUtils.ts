@@ -115,7 +115,7 @@ export namespace ShellUtils {
   export const NeverAllowedFlagNamesBySubcommand: Readonly<
     Record<string, readonly string[]>
   > = {
-    [CliSubcommand.init]: ["force"]
+    [CliSubcommand.init]: ["force", "session-id"]
   }
 
   /**
