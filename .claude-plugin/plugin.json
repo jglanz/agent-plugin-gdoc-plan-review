@@ -6,7 +6,7 @@
     "name": "Jonathan Glanz"
   },
   "license": "MIT",
-  "repository": "https://github.com/jglanz/claude-gdoc-review-plugin",
+  "repository": "https://github.com/jglanz/agent-plugin-gdoc-plan-review",
   "keywords": [
     "claude-code",
     "plugin",

@@ -149,11 +149,17 @@ formatting:
 From a checkout, for development or daily use:
 
 ```bash
-claude --plugin-dir /path/to/claude-gdoc-review-plugin
+claude --plugin-dir /path/to/agent-plugin-gdoc-plan-review
 ```
 
-Or install it from git through a local marketplace entry pointing at
-`https://github.com/jglanz/claude-gdoc-review-plugin`.
+Or install it from GitHub: the repository ships its own marketplace manifest
+(`.claude-plugin/marketplace.json`), so add it as a marketplace and install the
+plugin from it:
+
+```bash
+claude plugin marketplace add jglanz/agent-plugin-gdoc-plan-review
+claude plugin install claude-gdoc-review-plugin@gdoc-plan-review
+```
 
 No `pnpm install` is needed to _use_ the Claude plugin: its runtime is the
 single committed bundle `dist/gdoc-review.cjs`, so a plain clone or marketplace

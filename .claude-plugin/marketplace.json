@@ -1,0 +1,26 @@
+{
+  "name": "gdoc-plan-review",
+  "owner": {
+    "name": "Jonathan Glanz"
+  },
+  "metadata": {
+    "description": "Plan approval as a Google Doc review round for Claude Code",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "claude-gdoc-review-plugin",
+      "source": "./",
+      "description": "Plan approval as a Google Doc review round: sync the plan to a Doc, answer reviewer comments, custom approval menu",
+      "version": "0.1.0",
+      "author": {
+        "name": "Jonathan Glanz"
+      },
+      "license": "MIT",
+      "homepage": "https://github.com/jglanz/agent-plugin-gdoc-plan-review",
+      "repository": "https://github.com/jglanz/agent-plugin-gdoc-plan-review",
+      "keywords": ["claude-code", "plugin", "google-docs", "plan-review", "workspace-mcp"],
+      "category": "productivity"
+    }
+  ]
+}
