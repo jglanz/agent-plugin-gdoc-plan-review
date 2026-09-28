@@ -12,9 +12,11 @@ import {
   writeFileAtomic
 } from "../utils/index.js"
 import { NestedError } from "../errors/index.js"
+import { getHostDefinition, PlanBindingKind } from "./HostRegistry.js"
+import { HostKind } from "./HostRuntime.js"
 
 /** Evidence captured before presenting an approval question. */
-export const CodexPendingQuestionSchema = z.object({
+export const PendingReviewQuestionSchema = z.object({
   toolUseId: z.string().min(1),
   planSha256: z.string().min(1),
   revision: z.number().int(),
@@ -24,35 +26,44 @@ export const CodexPendingQuestionSchema = z.object({
 })
 
 /** A session binding independent of unstable host transcript formats. */
-export const CodexSessionRecordSchema = z.object({
+export const ReviewSessionRecordSchema = z.object({
   planFile: z.string().min(1),
-  pendingQuestion: CodexPendingQuestionSchema.nullable(),
+  pendingQuestion: PendingReviewQuestionSchema.nullable(),
   lastStopTurnId: z.string().nullable(),
   waitingForUser: z.boolean()
 })
 
-/** Persisted Codex session state. */
-export interface CodexSessionRecord extends z.infer<
-  typeof CodexSessionRecordSchema
+/** Persisted explicit session state, shared by native-question harnesses. */
+export interface ReviewSessionRecord extends z.infer<
+  typeof ReviewSessionRecordSchema
 > {}
 
-/** Atomic storage for one explicit plan binding per Codex session. */
-export class CodexSessionStore {
+/** Atomic storage for one explicit plan binding per harness session. */
+export class ReviewSessionStore {
   /** Creates a store next to the owning review store. */
-  constructor(readonly stateDirectory: string) {}
+  constructor(
+    readonly stateDirectory: string,
+    readonly host: HostKind
+  ) {
+    Assert.equal(
+      getHostDefinition(host).planBinding,
+      PlanBindingKind.session,
+      "This harness uses transcript plan discovery instead of explicit bindings"
+    )
+  }
 
   /** Serializes this session's hooks; contention fails safely instead of losing evidence. */
   async withLock<T>(
     sessionId: string,
     operation: () => Promise<T>
   ): Promise<T> {
-    const lockPath = `${this.sessionFile(sessionId)}${CodexSessionStore.LockSuffix}`
+    const lockPath = `${this.sessionFile(sessionId)}${ReviewSessionStore.LockSuffix}`
     await ensureDirectory(path.dirname(lockPath))
     try {
       await mkdir(lockPath, { mode: FsUtils.DirectoryMode })
     } catch (cause) {
       throw new NestedError(
-        "Codex review session is locked; retry after the current operation finishes. After a crash, remove the stale session lock only when no review process is running.",
+        "Review session is locked; retry after the current operation finishes. After a crash, remove the stale session lock only when no review process is running.",
         { cause, context: { lockPath } }
       )
     }
@@ -67,27 +78,27 @@ export class CodexSessionStore {
   sessionFile(sessionId: string): string {
     return path.join(
       this.stateDirectory,
-      CodexSessionStore.SessionsSubpath,
+      getHostDefinition(this.host).sessionsSubpath,
       ReviewStateStore.assertSafeName(sessionId)
     )
   }
 
   /** Reads a binding; malformed existing records fail rather than disappear. */
-  async read(sessionId: string): Promise<CodexSessionRecord> {
+  async read(sessionId: string): Promise<ReviewSessionRecord> {
     const text = await readTextFileOrNull(this.sessionFile(sessionId))
     return text == null
       ? null
-      : CodexSessionRecordSchema.parse(JSON.parse(text))
+      : ReviewSessionRecordSchema.parse(JSON.parse(text))
   }
 
   /** Persists a validated binding. */
-  async save(sessionId: string, record: CodexSessionRecord): Promise<void> {
+  async save(sessionId: string, record: ReviewSessionRecord): Promise<void> {
     await writeFileAtomic(
       this.sessionFile(sessionId),
       JSON.stringify(
-        CodexSessionRecordSchema.parse(record),
+        ReviewSessionRecordSchema.parse(record),
         null,
-        CodexSessionStore.Indent
+        ReviewSessionStore.Indent
       )
     )
   }
@@ -97,7 +108,7 @@ export class CodexSessionStore {
     const previous = await this.read(sessionId)
     Assert.ok(
       previous == null || previous.planFile === planFile,
-      "This Codex session is already bound to another plan"
+      "This harness session is already bound to another plan"
     )
     await this.save(sessionId, {
       planFile,
@@ -108,14 +119,10 @@ export class CodexSessionStore {
   }
 }
 
-/** Storage constants for Codex session bindings and snapshots. */
-export namespace CodexSessionStore {
+/** Storage constants for explicit session bindings and snapshots. */
+export namespace ReviewSessionStore {
   /** Exclusive directory lock; never automatically stolen from another process. */
   export const LockSuffix = ".lock"
-  /** Kept separate even when both hosts receive the same --state-dir. */
-  export const SessionsSubpath = "codex-sessions"
-  /** Directory for plugin-managed complete plan snapshots. */
-  export const PlansSubpath = "plans"
   /** Complete plan snapshot extension. */
   export const PlanExtension = ".md"
   /** Human-readable JSON indentation. */

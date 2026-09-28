@@ -1,11 +1,11 @@
 # Google Doc Plan Review
 
-Shared contributor guidance for both Codex and Claude.
+Shared contributor guidance for Claude, Codex, OpenCode, and future harnesses.
 
-Claude and Codex plugin: plan approval as a Google Doc review round (sync the
-plan into a Doc, answer reviewer comments, custom approval menu). Runtime = one
-committed bundle, `dist/gdoc-review.cjs`, invoked by `hooks/hooks.json` and by
-the model through Bash.
+Multi-harness plugin: plan approval as a Google Doc review round (sync the plan
+into a Doc, answer reviewer comments, custom approval menu). Runtime = one CLI
+bundle, `dist/gdoc-review.cjs`, plus `dist/opencode.mjs` for the native OpenCode
+plugin. Both artifacts are committed and self-contained.
 
 **Binding companion:** [`STYLE.md`](STYLE.md) — every rule there applies to all
 new code.
@@ -17,21 +17,21 @@ new code.
 
 ```bash
 pnpm install
-pnpm build        # tsc -b (typecheck + lib/) then esbuild → dist/gdoc-review.cjs
+pnpm build        # tsc -b (typecheck + lib/) then esbuild → both dist/ bundles
 pnpm lint         # eslint . (the house laws; zero tolerance, no exemption lists)
 pnpm test         # build + jest (NODE_OPTIONS=--experimental-vm-modules)
 pnpm format       # prettier
-pnpm validate     # Claude validator plus Codex package-contract checks
+pnpm validate     # Claude validator plus Codex and OpenCode package checks
 ```
 
-`pnpm validate` always checks the Codex package contracts and runs
+`pnpm validate` always checks the Codex and OpenCode package contracts and runs
 `claude plugin validate .` when the `claude` binary is on PATH (the Claude check
 is skipped when absent, so CI never depends on it). That plain invocation is the
 gate: `--strict` is not used, because this contributor file lives at the plugin
 root and is not shipped context.
 
-`dist/gdoc-review.cjs` is committed: after any `src/` change run `pnpm build`
-and include the regenerated bundle; CI fails on a stale bundle.
+Both `dist/` bundles are committed: after any `src/` change run `pnpm build` and
+include regenerated artifacts; CI fails on a stale bundle.
 
 ## Layout
 
@@ -44,7 +44,9 @@ and include the regenerated bundle; CI fails on a stale bundle.
 - `hooks/hooks.json` is Claude-only; `hooks/codex.json` is selected by the
   portable manifest OpenAI extension. Never route Codex into Claude mode
   changes.
-- `src/host/` contains Codex bindings, adapter, and explicit release status.
+- `src/host/` contains the harness registry, shared session binding and native
+  approval engine, host question protocols, and the OpenCode bridge. Read
+  `docs/harness-adapters.md` before adding a harness; do not clone the workflow.
 - `src/review/` contains host-independent approval checks.
 - `bin/gdoc-review` is the plain-JS launcher.
 

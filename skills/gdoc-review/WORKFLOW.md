@@ -1,6 +1,6 @@
-Tool names below are given by suffix. Use whichever workspace-mcp server is
-connected — the real tool name is `mcp__<server>__<suffix>`, for example the
-`update_drive_file` tool of that server.
+Tool names below are given by suffix. Use the connected workspace-mcp server and
+the native tool names specified by your harness adapter. Claude and Codex use
+`mcp__<server>__<suffix>`; OpenCode uses `<sanitized-server>_<suffix>`.
 
 Two rules apply to every call to that server:
 

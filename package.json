@@ -25,13 +25,14 @@
     "format": "prettier --write \"**/*.{ts,md}\"",
     "format:check": "prettier --check \"**/*.{ts,md}\"",
     "lint": "eslint .",
-    "validate": "pnpm run validate:claude && pnpm run validate:codex",
+    "validate": "pnpm run validate:claude && pnpm run validate:codex && pnpm run validate:opencode",
     "test": "pnpm run build && NODE_OPTIONS=--experimental-vm-modules jest",
     "test:ci": "pnpm run build && NODE_OPTIONS=--experimental-vm-modules jest --reporters=default --reporters=jest-junit",
     "clean": "rm -rf lib dist *.tsbuildinfo",
     "prepare": "husky",
     "validate:claude": "if command -v claude >/dev/null 2>&1; then claude plugin validate .; else echo 'claude CLI not on PATH; skipping plugin validation'; fi",
-    "validate:codex": "node scripts/validate-codex.mjs"
+    "validate:codex": "node scripts/validate-codex.mjs",
+    "validate:opencode": "node scripts/validate-opencode.mjs"
   },
   "dependencies": {
     "@3fv/prelude-ts": "^0.8.42",
@@ -44,6 +45,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@opencode-ai/plugin": "1.18.32",
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.20",
     "@types/node": "25.5.0",

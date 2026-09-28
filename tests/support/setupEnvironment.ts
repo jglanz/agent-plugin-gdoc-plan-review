@@ -1,6 +1,6 @@
 import { mkdtempSync } from "node:fs"
 
-import { HostRuntime } from "claude-gdoc-review-plugin/host/index"
+import { HostRegistry, HostRuntime } from "claude-gdoc-review-plugin/host/index"
 
 import { PluginConfig } from "claude-gdoc-review-plugin/config/index"
 
@@ -21,4 +21,8 @@ process.env[PluginConfig.ConfigDirectoryEnvironmentKey] = mkdtempSync(
 
 // Keep new Codex adapter tests out of the developer's actual Codex state.
 process.env[HostRuntime.CodexHomeEnvironmentKey] =
+  process.env[PluginConfig.ConfigDirectoryEnvironmentKey]
+
+// Isolate OpenCode state as well, including default-resolution tests.
+process.env[HostRegistry.OpenCodeStateHomeEnvironmentKey] =
   process.env[PluginConfig.ConfigDirectoryEnvironmentKey]

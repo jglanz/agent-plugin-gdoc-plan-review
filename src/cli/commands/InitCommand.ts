@@ -2,7 +2,12 @@ import Assert from "node:assert"
 
 import type { CommandModule, Options } from "yargs"
 
-import { CodexSessionStore, getActiveHost, HostKind } from "../../host/index.js"
+import {
+  ReviewSessionStore,
+  getActiveHost,
+  getHostDefinition,
+  PlanBindingKind
+} from "../../host/index.js"
 import { resolvePluginConfig } from "../../config/index.js"
 import { PlanFileLocator } from "../../plan/index.js"
 import type { ReviewTarget } from "../../state/index.js"
@@ -22,7 +27,7 @@ import {
 
 /** Arguments of the `init` command. */
 export interface InitCommandArguments extends CliState.Arguments {
-  /** Required Codex host session binding. */
+  /** Required native host session binding. */
   "session-id"?: string
   /** Plan markdown file the review is keyed by. */
   plan: string
@@ -48,9 +53,9 @@ export namespace InitCommand {
 
   /** Option definitions, collocated with the handler. */
   export const OptionDefinitions: Record<string, Options> = {
-    [CodexSessionStore.SessionOption]: {
+    [ReviewSessionStore.SessionOption]: {
       type: "string",
-      describe: "Codex session id supplied by the host hook"
+      describe: "Harness session id supplied by the host hook"
     },
     plan: PlanOptionDefinition,
     kind: {
@@ -198,8 +203,8 @@ export function createInitCommand(): CommandModule<
         },
         host = getActiveHost(),
         ownerSessionId =
-          host === HostKind.codex
-            ? argv[CodexSessionStore.SessionOption]
+          getHostDefinition(host).planBinding === PlanBindingKind.session
+            ? argv[ReviewSessionStore.SessionOption]
             : null,
         state = createInitialReviewState({
           planFile,
@@ -209,17 +214,18 @@ export function createInitCommand(): CommandModule<
           ownerSessionId
         })
 
-      if (host === HostKind.codex) {
+      if (getHostDefinition(host).planBinding === PlanBindingKind.session) {
         Assert.ok(
           isNonEmptyString(ownerSessionId),
-          "Codex init requires --session-id from the host hook"
+          "Session-bound init requires --session-id from the host hook"
         )
-        const session = await new CodexSessionStore(
-          store.config.stateDirectory
+        const session = await new ReviewSessionStore(
+          store.config.stateDirectory,
+          host
         ).read(ownerSessionId)
         Assert.ok(
           session != null && session.planFile === planFile,
-          "Bind the complete plan with snapshot before Codex init"
+          "Bind the complete plan with snapshot before session-bound init"
         )
       }
 

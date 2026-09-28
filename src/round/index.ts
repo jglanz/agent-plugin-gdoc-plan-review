@@ -1,3 +1,5 @@
 export * from "./MenuSpec.js"
 export * from "./CodexReviewMenu.js"
+export * from "./NativeReviewMenu.js"
+export * from "./OpenCodeReviewMenu.js"
 export * from "./RoundProtocolRenderer.js"

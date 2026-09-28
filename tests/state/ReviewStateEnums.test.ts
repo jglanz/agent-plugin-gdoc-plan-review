@@ -59,8 +59,9 @@ describe("ReviewDecisionSource", () => {
     )
   })
 
-  it("carries the three decision sources", () => {
+  it("carries each implemented harness's decision source", () => {
     expect(Object.keys(ReviewDecisionSource)).toEqual([
+      ReviewDecisionSource.opencode_question,
       ReviewDecisionSource.request_user_input,
       "ask_user_question",
       "cli"

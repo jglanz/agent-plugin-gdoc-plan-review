@@ -1,10 +1,11 @@
 import {
   CapabilitiesCommand,
   CodexSupport,
+  HostRegistry,
   HostKind
 } from "claude-gdoc-review-plugin"
 
-import { CodexTest } from "../../support/codexTestSupport.js"
+import { NativeTest } from "../../support/nativeReviewTestSupport.js"
 import {
   CliTestEnvironment,
   createCliTestEnvironment,
@@ -20,10 +21,24 @@ describe("capabilities", () => {
   afterEach(async () => {
     await destroyCliTestEnvironment(environment)
   })
+  it("reports OpenCode's native permission boundary and pending live validation", async () => {
+    const result = await runCli(environment, [
+      CapabilitiesCommand.Name,
+      NativeTest.HostFlag,
+      HostKind.opencode
+    ])
+    expect(result.exitCode).toBe(0)
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      host: HostKind.opencode,
+      inPlanWritesVerified: false,
+      permissionModeSwitch: false,
+      blocker: HostRegistry.OpenCodeBlocker
+    })
+  })
   it("reports the Codex release blocker and the existing Claude behavior", async () => {
     const codex = await runCli(environment, [
         CapabilitiesCommand.Name,
-        CodexTest.HostFlag,
+        NativeTest.HostFlag,
         HostKind.codex
       ]),
       claude = await runCli(environment, [CapabilitiesCommand.Name])
@@ -41,8 +56,8 @@ describe("capabilities", () => {
       (
         await runCli(environment, [
           CapabilitiesCommand.Name,
-          CodexTest.HostFlag,
-          CodexTest.OtherServer
+          NativeTest.HostFlag,
+          NativeTest.OtherServer
         ])
       ).exitCode
     ).not.toBe(0)

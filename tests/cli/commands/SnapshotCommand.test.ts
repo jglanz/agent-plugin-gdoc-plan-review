@@ -1,10 +1,10 @@
 import {
-  CodexSessionStore,
+  ReviewSessionStore,
   HostKind,
   SnapshotCommand
 } from "claude-gdoc-review-plugin"
 
-import { CodexTest } from "../../support/codexTestSupport.js"
+import { NativeTest } from "../../support/nativeReviewTestSupport.js"
 import {
   CliTestEnvironment,
   createCliTestEnvironment,
@@ -12,7 +12,7 @@ import {
   runCli
 } from "../../support/cliTestSupport.js"
 
-describe("snapshot", () => {
+describe.each([HostKind.codex, HostKind.opencode])("%s snapshot", host => {
   let environment: CliTestEnvironment = null
   beforeEach(async () => {
     environment = await createCliTestEnvironment()
@@ -23,40 +23,40 @@ describe("snapshot", () => {
   it("binds an existing complete plan without parsing a transcript", async () => {
     const result = await runCli(environment, [
       SnapshotCommand.Name,
-      CodexTest.HostFlag,
-      HostKind.codex,
-      CodexTest.SessionFlag,
-      CodexTest.OtherSessionId,
-      CodexTest.PlanFlag,
+      NativeTest.HostFlag,
+      host,
+      NativeTest.SessionFlag,
+      NativeTest.OtherSessionId,
+      NativeTest.PlanFlag,
       environment.planFile
     ])
     expect(result.exitCode).toBe(0)
-    const session = await new CodexSessionStore(environment.statePath).read(
-      CodexTest.OtherSessionId
-    )
+    const session = await new ReviewSessionStore(
+      environment.statePath,
+      host
+    ).read(NativeTest.OtherSessionId)
     expect(session.planFile).toBe(environment.planFile)
     expect(session.pendingQuestion).toBeNull()
   })
   it("rejects Claude, missing plan input, and unsafe session identifiers", async () => {
     const base = [
       SnapshotCommand.Name,
-      CodexTest.SessionFlag,
-      CodexTest.OtherSessionId
+      NativeTest.SessionFlag,
+      NativeTest.OtherSessionId
     ]
     expect((await runCli(environment, base)).exitCode).not.toBe(0)
     expect(
-      (await runCli(environment, [...base, CodexTest.HostFlag, HostKind.codex]))
-        .exitCode
+      (await runCli(environment, [...base, NativeTest.HostFlag, host])).exitCode
     ).not.toBe(0)
     expect(
       (
         await runCli(environment, [
           SnapshotCommand.Name,
-          CodexTest.HostFlag,
-          HostKind.codex,
-          CodexTest.SessionFlag,
+          NativeTest.HostFlag,
+          host,
+          NativeTest.SessionFlag,
           environment.planFile,
-          CodexTest.PlanFlag,
+          NativeTest.PlanFlag,
           environment.planFile
         ])
       ).exitCode

@@ -1,6 +1,10 @@
 import path from "node:path"
 
-import { CodexSessionStore, HostKind } from "../host/index.js"
+import {
+  ReviewSessionStore,
+  getHostDefinition,
+  PlanBindingKind
+} from "../host/index.js"
 import { NestedError } from "../errors/index.js"
 import { PlanFileLocator } from "../plan/index.js"
 import { ReviewState } from "../state/index.js"
@@ -65,17 +69,18 @@ export async function locateReview(
   context: HookContext
 ): Promise<ReviewLookup> {
   const { transcript_path: transcriptPath, session_id: sessionId } = input,
-    codexSession =
-      context.host === HostKind.codex
-        ? await new CodexSessionStore(context.store.config.stateDirectory).read(
-            sessionId
-          )
+    boundSession =
+      getHostDefinition(context.host).planBinding === PlanBindingKind.session
+        ? await new ReviewSessionStore(
+            context.store.config.stateDirectory,
+            context.host
+          ).read(sessionId)
         : null,
     planFile =
-      context.host === HostKind.codex
-        ? codexSession == null
+      getHostDefinition(context.host).planBinding === PlanBindingKind.session
+        ? boundSession == null
           ? null
-          : codexSession.planFile
+          : boundSession.planFile
         : await context.locator.locate({
             explicitPlanFile: null,
             transcriptPath,
@@ -93,7 +98,9 @@ export async function locateReview(
   if (
     state != null &&
     (state.host !== context.host ||
-      (context.host === HostKind.codex && state.ownerSessionId !== sessionId))
+      (getHostDefinition(context.host).planBinding ===
+        PlanBindingKind.session &&
+        state.ownerSessionId !== sessionId))
   ) {
     throw new NestedError("The review belongs to a different host or session", {
       context: { sessionId, planSlug }

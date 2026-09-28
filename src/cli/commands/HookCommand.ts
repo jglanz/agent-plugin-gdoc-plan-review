@@ -1,6 +1,12 @@
 import path from "node:path"
 import type { PreToolUseHookOutput } from "../../hooks/HookOutput.js"
-import { getActiveHost, HostKind } from "../../host/index.js"
+import {
+  getActiveHost,
+  getHostDefinition,
+  getNativeReviewProtocol,
+  HostKind,
+  PlanBindingKind
+} from "../../host/index.js"
 
 import type { CommandModule, Options } from "yargs"
 import { z } from "zod"
@@ -101,6 +107,19 @@ export namespace HookCommand {
    */
   export function isGatedEvent(json: unknown): boolean {
     return GatedEventSchema.safeParse(json).success
+  }
+
+  /** Identifies native questions whose malformed pre-tool payload must fail closed. */
+  export function isNativeQuestionEvent(
+    json: unknown,
+    host: HostKind
+  ): boolean {
+    return (
+      getHostDefinition(host).planBinding === PlanBindingKind.session &&
+      isRecord(json) &&
+      json.hook_event_name === HookEventName.PreToolUse &&
+      json.tool_name === getNativeReviewProtocol(host).toolName
+    )
   }
 
   /**
@@ -218,13 +237,12 @@ async function runHook(inputFile: string): Promise<void> {
       HookCommand.FailureMessage,
       cause instanceof Error ? cause.message : String(cause)
     )
-    const codexQuestion =
-      getActiveHost() === HostKind.codex &&
-      isRecord(json) &&
-      json.hook_event_name === HookEventName.PreToolUse &&
-      json.tool_name === HostToolName.request_user_input
+    const nativeQuestion = HookCommand.isNativeQuestionEvent(
+      json,
+      getActiveHost()
+    )
     printOutput(
-      codexQuestion
+      nativeQuestion
         ? HookOutput.preToolUseDeny(ExitPlanModeGateHandler.FailureReason)
         : HookCommand.newFailureOutputForRaw(
             gated && getActiveHost() === HostKind.claude

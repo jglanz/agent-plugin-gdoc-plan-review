@@ -21,6 +21,7 @@ export enum HookEventName {
  * {@link WorkspaceToolName.parse} instead of this enum.
  */
 export enum HostToolName {
+  question = "question",
   request_user_input = "request_user_input",
   ExitPlanMode = "ExitPlanMode",
   Bash = "Bash",

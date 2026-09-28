@@ -1,9 +1,9 @@
 ---
 name: gdoc-review
 description:
-  "Review a plan in Google Docs with Claude or the Codex native adapter. Claude
-  supports automatic approval rounds; Codex in-Plan writes remain gated on
-  verified host support."
+  "Review a plan in Google Docs with Claude, Codex, or OpenCode. Claude supports
+  automatic approval rounds; Codex in-Plan writes remain gated on verified host
+  support."
 argument-hint: 'PersonalDrive|SharedDrive [DriveName] "folder/path/DocName"'
 disable-model-invocation: true
 allowed-tools: Bash(node "${CLAUDE_PLUGIN_ROOT}/dist/gdoc-review.cjs" *)
@@ -17,6 +17,10 @@ In **Codex**, read [CODEX.md](CODEX.md) and follow that adapter exclusively. The
 Claude tools, plan-file discovery, permission grants, and shell environment
 below apply only to **Claude Code**. Never use skill text to override host
 Plan-mode instructions.
+
+In **OpenCode**, read [OPENCODE.md](OPENCODE.md) and follow the native plugin
+adapter exclusively. Its `question` tool and native permissions replace the
+Claude-specific tool grants and approval mechanism below.
 
 ## Claude Code setup
 

@@ -1,7 +1,7 @@
 import { identity } from "lodash"
 import type { CommandModule } from "yargs"
 
-import { CodexSupport, getActiveHost, HostKind } from "../../host/index.js"
+import { getActiveHost, getHostDefinition } from "../../host/index.js"
 import type { CliState } from "../CliState.js"
 import { printJson } from "../commandSupport.js"
 
@@ -18,14 +18,10 @@ export function createCapabilitiesCommand(): CommandModule<CliState.Arguments> {
     describe: "Report host capabilities and release prerequisites",
     builder: identity,
     handler: () => {
-      const host = getActiveHost(),
-        codex = host === HostKind.codex
+      const host = getActiveHost()
       printJson({
         host,
-        inPlanWritesVerified: codex ? CodexSupport.InPlanWritesVerified : true,
-        permissionModeSwitch: !codex,
-        blocker: codex ? CodexSupport.Blocker : null,
-        message: codex ? CodexSupport.Message : null
+        ...getHostDefinition(host).capabilities
       })
     }
   }

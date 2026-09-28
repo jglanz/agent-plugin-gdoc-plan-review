@@ -61,6 +61,7 @@ export enum PermissionMode {
  * reach, so it is recorded but never auto-approved.
  */
 export enum ReviewDecisionSource {
+  opencode_question = "opencode_question",
   request_user_input = "request_user_input",
   ask_user_question = "ask_user_question",
   cli = "cli"

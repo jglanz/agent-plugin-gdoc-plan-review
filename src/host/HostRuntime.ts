@@ -1,13 +1,18 @@
 /** Hosts with separate hook protocols and state directories. */
 export enum HostKind {
   claude = "claude",
-  codex = "codex"
+  codex = "codex",
+  opencode = "opencode"
 }
 
 /** Host-specific identities and environment contracts. */
 export namespace HostRuntime {
   /** Global CLI option; hooks always set it explicitly. */
   export const HostOption = "host"
+  /** Claude configuration-directory override. */
+  export const ClaudeHomeEnvironmentKey = "CLAUDE_CONFIG_DIR"
+  /** Default Claude configuration directory. */
+  export const ClaudeDirectoryName = ".claude"
   /** Codex's configuration-directory override. */
   export const CodexHomeEnvironmentKey = "CODEX_HOME"
   /** Default Codex configuration directory. */

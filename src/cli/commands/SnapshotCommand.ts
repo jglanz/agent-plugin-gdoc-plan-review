@@ -3,7 +3,12 @@ import path from "node:path"
 
 import type { CommandModule, Options } from "yargs"
 
-import { CodexSessionStore, getActiveHost, HostKind } from "../../host/index.js"
+import {
+  ReviewSessionStore,
+  getActiveHost,
+  getHostDefinition,
+  PlanBindingKind
+} from "../../host/index.js"
 import { PlanFileLocator, sha256OfText } from "../../plan/index.js"
 import { ReviewStateStore, ReviewStatus } from "../../state/index.js"
 import {
@@ -34,10 +39,10 @@ export namespace SnapshotCommand {
   export const MaxBytes = 4 * 1_024 * 1_024
   /** CLI option definitions. */
   export const Options: Record<string, Options> = {
-    [CodexSessionStore.SessionOption]: {
+    [ReviewSessionStore.SessionOption]: {
       type: "string",
       demandOption: true,
-      describe: "Session id supplied by the Codex hook"
+      describe: "Session id supplied by the session-bound harness hook"
     },
     plan: {
       type: "string",
@@ -70,7 +75,7 @@ async function readSnapshotText(
   return Buffer.concat(chunks).toString(FsUtils.Encoding)
 }
 
-/** Creates or binds a complete Codex plan snapshot without changing host mode. */
+/** Creates or binds a complete session-bound harness plan snapshot without changing host mode. */
 export function createSnapshotCommand(): CommandModule<
   CliState.Arguments,
   SnapshotCommandArguments
@@ -78,15 +83,17 @@ export function createSnapshotCommand(): CommandModule<
   return {
     command: SnapshotCommand.Name,
     describe:
-      "Bind a complete Codex plan snapshot; requires host authorization for any writes",
+      "Bind a complete session-bound harness plan snapshot; requires host authorization for any writes",
     builder: SnapshotCommand.Options,
     handler: async argv => {
+      const host = getActiveHost(),
+        definition = getHostDefinition(host)
       Assert.ok(
-        getActiveHost() === HostKind.codex,
-        "snapshot requires --host codex"
+        definition.planBinding === PlanBindingKind.session,
+        "snapshot requires a session-bound harness (--host codex or opencode)"
       )
       const sessionId = ReviewStateStore.assertSafeName(
-          argv[CodexSessionStore.SessionOption]
+          argv[ReviewSessionStore.SessionOption]
         ),
         explicitPlanFile = readOptionalPlanFile(argv.plan)
       Assert.ok(
@@ -94,14 +101,14 @@ export function createSnapshotCommand(): CommandModule<
         "Pass --plan or --stdin for the complete plan"
       )
       const store = await createCliStore(),
-        sessions = new CodexSessionStore(store.config.stateDirectory)
+        sessions = new ReviewSessionStore(store.config.stateDirectory, host)
       await sessions.withLock(sessionId, async () => {
         const planFile =
             explicitPlanFile ??
             path.join(
               store.config.stateDirectory,
-              CodexSessionStore.PlansSubpath,
-              `${sessionId}${CodexSessionStore.PlanExtension}`
+              definition.plansSubpath,
+              `${sessionId}${ReviewSessionStore.PlanExtension}`
             ),
           session = await sessions.read(sessionId),
           state = await store.load(PlanFileLocator.planSlug(planFile))
@@ -111,8 +118,7 @@ export function createSnapshotCommand(): CommandModule<
         )
         Assert.ok(
           state == null ||
-            (state.host === HostKind.codex &&
-              state.ownerSessionId === sessionId),
+            (state.host === host && state.ownerSessionId === sessionId),
           "This plan is owned by another host or session"
         )
         const text = await readSnapshotText(argv, planFile)
@@ -136,7 +142,7 @@ export function createSnapshotCommand(): CommandModule<
           })
         if (argv.stdin) await writeFileAtomic(planFile, text)
         printJson({
-          host: HostKind.codex,
+          host,
           sessionId,
           planFile,
           planSha256: sha256OfText(text)

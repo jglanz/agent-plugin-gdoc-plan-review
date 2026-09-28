@@ -2,7 +2,7 @@ import Assert from "node:assert"
 
 import { z } from "zod"
 
-import { getActiveHost, HostKind } from "../host/index.js"
+import { getActiveHost, HostKind } from "../host/HostRuntime.js"
 import { NestedError } from "../errors/index.js"
 import { isNonEmptyString, isRecord, isString } from "../utils/index.js"
 import {

@@ -1,11 +1,11 @@
-import { homedir } from "node:os"
 import path from "node:path"
 
 import { defaults } from "lodash"
 import { z } from "zod"
 
 import { GDocReview } from "../Constants.js"
-import { getActiveHost, HostKind, HostRuntime } from "../host/index.js"
+import { getActiveHost, HostKind, HostRuntime } from "../host/HostRuntime.js"
+import { resolveHostStateDirectory } from "../host/HostRegistry.js"
 import { getLogger } from "../logging/logger.js"
 import { LogLevel } from "../logging/LogLevel.js"
 import { PermissionMode, SyncMode } from "../state/ReviewStateEnums.js"
@@ -132,23 +132,7 @@ export function resolveStateDirectory(
     return activeStateDirectory
   }
 
-  if (host === HostKind.codex) {
-    const { [HostRuntime.CodexHomeEnvironmentKey]: codexHome } = process.env
-    return path.join(
-      isNonEmptyString(codexHome)
-        ? codexHome
-        : path.join(homedir(), HostRuntime.CodexDirectoryName),
-      GDocReview.StateDirName
-    )
-  }
-
-  const { [PluginConfig.ConfigDirectoryEnvironmentKey]: configuredDirectory } =
-      process.env,
-    baseDirectoryPath = isNonEmptyString(configuredDirectory)
-      ? configuredDirectory
-      : path.join(homedir(), PluginConfig.ClaudeConfigDirectoryName)
-
-  return path.join(baseDirectoryPath, GDocReview.StateDirName)
+  return resolveHostStateDirectory(host)
 }
 
 /**
@@ -300,10 +284,11 @@ export namespace PluginConfig {
   export const ConfigFileName = "config.json"
 
   /** Directory Claude Code uses for its configuration when the env var is unset. */
-  export const ClaudeConfigDirectoryName = ".claude"
+  export const ClaudeConfigDirectoryName = HostRuntime.ClaudeDirectoryName
 
   /** Environment variable relocating the Claude config directory. */
-  export const ConfigDirectoryEnvironmentKey = "CLAUDE_CONFIG_DIR"
+  export const ConfigDirectoryEnvironmentKey =
+    HostRuntime.ClaudeHomeEnvironmentKey
 
   /** Environment variable overriding {@link PluginConfigOptions.approveAutoMode}. */
   export const ApproveModeEnvironmentKey = "GDOC_REVIEW_APPROVE_MODE"

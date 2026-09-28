@@ -1,7 +1,8 @@
 # Google Doc Plan Review
 
-A plugin with a shared review engine, a Claude Code integration, and a Codex
-native adapter. **Codex in-Plan writes remain unverified and release-blocked.**
+A plugin with a shared review engine and native integrations for Claude Code,
+Codex, and OpenCode. **Codex in-Plan writes remain unverified and
+release-blocked; OpenCode's live Google review acceptance is pending.**
 
 The existing Claude Code integration turns plan approval into a Google Doc
 review round. Instead of the built-in `ExitPlanMode` dialog, every attempt to
@@ -12,6 +13,55 @@ plan is approved the way a document is approved, with the comment thread as the
 record. The plugin is inert until you run `/gdoc-review` for a plan: with no
 review state for the current plan file, the hooks print nothing and Claude Code
 behaves exactly as it does without the plugin.
+
+## OpenCode
+
+The native plugin targets OpenCode's classic Hooks API, compiled against
+`@opencode-ai/plugin` **1.18.32**. It adds `/gdoc-review`, a read-only session
+context tool, native question capture, successful MCP-result recording, and
+resume/compaction context. The review uses the `plan` agent and leaves native
+permissions and execution controls unchanged.
+
+Keep this checkout or installed package intact. Add a local loader under your
+project's `.opencode/plugins/gdoc-review.js` (or the global OpenCode plugin
+directory), substituting the actual absolute package path:
+
+```js
+export { GDocReviewOpenCode } from "file:///absolute/path/gdoc-plan-review-plugin/dist/opencode.mjs"
+```
+
+Alternatively, add that absolute file URL to the `plugin` array in your
+`opencode.json`. Use one loading method so hooks run once. No runtime dependency
+installation is required for the bundle. Connect your workspace-mcp Docs/Drive
+server in OpenCode separately, restart OpenCode, and invoke:
+
+```
+/gdoc-review PersonalDrive "code/claude/wip/MyPlan"
+```
+
+Call `gdoc_review_context` for the actual session id and state directory. CLI
+operations use `--host opencode`; state defaults to
+`$XDG_STATE_HOME/opencode/gdoc-review`, or
+`~/.local/state/opencode/gdoc-review`. A plugin config tuple may set
+`stateDirectory`; then pass that same path as `--state-dir` to the CLI.
+
+OpenCode uses positional `question` answers and sanitized MCP names. The adapter
+checks native answer metadata, matches configured server names, and rejects
+ambiguous names, failed writes, stale plans, and replayed approvals. Approval
+records the reviewed revision; implementation requires a separate user action.
+See [the OpenCode procedure](skills/gdoc-review/OPENCODE.md). The
+[validation record](docs/opencode-validation.md) distinguishes the stock-CLI
+load check and automated contracts from the remaining live Google acceptance.
+
+## Harness architecture
+
+Storage and capabilities live in a central host registry. Native question
+formats are adapters over a shared approval engine, so adding another harness
+does not copy the Google review workflow. **Cursor and Junie are future
+extension targets, not implemented integrations.**
+[The adapter guide](docs/harness-adapters.md) describes the contracts, test
+requirements, and permission boundaries. OpenCode V2 requires its own bridge;
+the classic entry point does not claim V2 compatibility.
 
 ## Codex support status
 
@@ -105,9 +155,9 @@ claude --plugin-dir /path/to/claude-gdoc-review-plugin
 Or install it from git through a local marketplace entry pointing at
 `https://github.com/jglanz/claude-gdoc-review-plugin`.
 
-No `pnpm install` is needed to _use_ the plugin: the runtime is the single
-committed bundle `dist/gdoc-review.cjs`, so a plain clone or marketplace install
-runs as is.
+No `pnpm install` is needed to _use_ the Claude plugin: its runtime is the
+single committed bundle `dist/gdoc-review.cjs`, so a plain clone or marketplace
+install runs as is.
 
 ## Usage
 
@@ -478,13 +528,14 @@ pnpm build   # tsc -b (typecheck + lib/) then esbuild → dist/gdoc-review.cjs
 pnpm lint    # eslint .
 pnpm test    # build + jest (unit + spawned-bundle integration tests)
 pnpm format  # prettier
-pnpm validate  # Claude validator (when installed) + Codex package contracts
+pnpm validate  # Claude validator (when installed) + Codex and OpenCode package contracts
 ```
 
-`dist/gdoc-review.cjs` is the only runtime artifact and it is **committed**: a
-plain clone or marketplace install must run with no `pnpm install`. After any
-`src/` change run `pnpm build` and include the regenerated bundle in the same
-change — CI fails on a stale bundle (`git diff --exit-code -- dist/`).
+`dist/gdoc-review.cjs` and `dist/opencode.mjs` are self-contained runtime
+artifacts and must be **committed**: a plain clone or marketplace install must
+run with no `pnpm install`. After any `src/` change run `pnpm build` and include
+the regenerated bundle in the same change — CI fails on a stale bundle
+(`git diff --exit-code -- dist/`).
 
 Conventions are binding: [`CLAUDE.md`](CLAUDE.md) for the repository rules,
 [`STYLE.md`](STYLE.md) for the TypeScript style laws (the mechanical subset is

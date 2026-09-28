@@ -18,23 +18,48 @@ const Banner = [
   `const ${ImportMetaUrlIdentifier} = require("node:url").pathToFileURL(__filename).href;`
 ].join("\n")
 
-// `dist/gdoc-review.cjs` is the ONLY runtime artifact: hooks.json and the bin
+// `dist/gdoc-review.cjs` is the self-contained CLI: hooks.json and the bin
 // launcher both invoke it with a bare `node`, so every dependency is inlined
 // (source-map-support included) and nothing is marked external. The shebang
 // banner + exec bit let it also be run directly.
-await esbuild.build({
-  entryPoints: [EntryFile],
-  outfile: OutFile,
+const SharedBuildOptions = {
   bundle: true,
   platform: "node",
   target: "node24",
-  format: "cjs",
   sourcemap: "inline",
   minify: false,
   external: [],
-  define: { "import.meta.url": ImportMetaUrlIdentifier },
-  banner: { js: Banner },
   logLevel: "info"
+}
+
+await esbuild.build({
+  ...SharedBuildOptions,
+  entryPoints: [EntryFile],
+  outfile: OutFile,
+  format: "cjs",
+  define: { "import.meta.url": ImportMetaUrlIdentifier },
+  banner: { js: Banner }
 })
 
 chmodSync(OutFile, 0o755)
+
+// The OpenCode loader imports an ESM module and calls each exported plugin.
+// Keep only the plugin function in this entry and bundle every runtime dependency.
+const OpenCodeEntryFile = "src/host/opencode/entry.ts"
+const OpenCodeOutFile = "dist/opencode.mjs"
+const OpenCodeBanner = [
+  'import { createRequire as gdocCreateRequire } from "node:module";',
+  'import { fileURLToPath as gdocFileURLToPath } from "node:url";',
+  'import { dirname as gdocDirname } from "node:path";',
+  "const require = gdocCreateRequire(import.meta.url);",
+  "const __filename = gdocFileURLToPath(import.meta.url);",
+  "const __dirname = gdocDirname(__filename);"
+].join("\n")
+
+await esbuild.build({
+  ...SharedBuildOptions,
+  entryPoints: [OpenCodeEntryFile],
+  outfile: OpenCodeOutFile,
+  format: "esm",
+  banner: { js: OpenCodeBanner }
+})

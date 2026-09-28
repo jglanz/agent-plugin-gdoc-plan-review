@@ -1,6 +1,7 @@
 import {
+  getNativeReviewProtocol,
   CodexReviewMenu,
-  CodexSessionStore,
+  ReviewSessionStore,
   HostKind,
   HookEventName,
   HostToolName,
@@ -17,8 +18,8 @@ import {
   writePlanText
 } from "./hookTestSupport.js"
 
-/** Shared operational fixture values for Codex contract tests. */
-export namespace CodexTest {
+/** Shared operational fixture values for native harness contract tests. */
+export namespace NativeTest {
   /** Initial complete plan. */
   export const Plan = "# Reviewed plan\n\nImplement the agreed behavior.\n"
   /** Changed full plan. */
@@ -53,24 +54,26 @@ export namespace CodexTest {
   export const OtherServer = "other-server"
 }
 
-/** Creates an isolated, synchronized Codex review. */
-export async function createCodexTestEnvironment(): Promise<HookTestEnvironment> {
+/** Creates an isolated, synchronized native-harness review. */
+export async function createNativeTestEnvironment(
+  host: HostKind = HostKind.codex
+): Promise<HookTestEnvironment> {
   const environment = await createHookTestEnvironment()
-  environment.context.host = HostKind.codex
-  const digest = await writePlanText(environment, CodexTest.Plan)
-  await new CodexSessionStore(environment.statePath).bind(
+  environment.context.host = host
+  const digest = await writePlanText(environment, NativeTest.Plan)
+  await new ReviewSessionStore(environment.statePath, host).bind(
     environment.sessionId,
     environment.planFile
   )
   await environment.store.save(
     createActiveReviewState(environment, {
-      host: HostKind.codex,
+      host,
       ownerSessionId: environment.sessionId,
-      revision: CodexTest.Revision,
+      revision: NativeTest.Revision,
       lastSync: {
         at: FixtureNow.toISOString(),
         planSha256: digest,
-        revision: CodexTest.Revision
+        revision: NativeTest.Revision
       }
     })
   )
@@ -78,35 +81,35 @@ export async function createCodexTestEnvironment(): Promise<HookTestEnvironment>
 }
 
 /** Creates a host-authored PreToolUse payload for the canonical native question. */
-export function createCodexQuestion(
+export function createNativeQuestion(
   environment: HookTestEnvironment,
   state: ReviewState
 ): PreToolUseHookInput {
+  const protocol = getNativeReviewProtocol(environment.context.host)
   return {
     hook_event_name: HookEventName.PreToolUse,
     session_id: environment.sessionId,
     transcript_path: null,
-    permission_mode: CodexTest.PlanMode,
-    tool_name: HostToolName.request_user_input,
-    tool_use_id: CodexTest.QuestionCallId,
+    permission_mode: NativeTest.PlanMode,
+    tool_name: protocol.toolName,
+    tool_use_id: NativeTest.QuestionCallId,
     tool_input: {
-      questions: [
-        CodexReviewMenu.createQuestion(state, state.lastSync.planSha256)
-      ]
+      questions: [protocol.createQuestion(state, state.lastSync.planSha256)]
     }
   }
 }
 
 /** Creates the response event for the same native invocation. */
-export function createCodexAnswer(
+export function createNativeAnswer(
   question: PreToolUseHookInput,
   answer: string
 ): PostToolUseHookInput {
   return {
     ...question,
     hook_event_name: HookEventName.PostToolUse,
-    tool_response: {
-      answers: { [CodexReviewMenu.QuestionId]: { answers: [answer] } }
-    }
+    tool_response:
+      question.tool_name === HostToolName.question
+        ? { metadata: { answers: [[answer]] } }
+        : { answers: { [CodexReviewMenu.QuestionId]: { answers: [answer] } } }
   }
 }

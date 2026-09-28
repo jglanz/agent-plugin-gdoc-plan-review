@@ -1,7 +1,7 @@
 import { match } from "ts-pattern"
-import { HostKind } from "../host/HostRuntime.js"
-import { dispatchCodexHook } from "../host/CodexHookAdapter.js"
-import { CodexSessionStore } from "../host/CodexSessionStore.js"
+import { getHostDefinition, PlanBindingKind } from "../host/HostRegistry.js"
+import { dispatchNativeReviewHook } from "../host/NativeReviewAdapter.js"
+import { ReviewSessionStore } from "../host/ReviewSessionStore.js"
 
 import { WorkspaceToolName } from "../google/index.js"
 import type { HookContext } from "./HookContext.js"
@@ -124,11 +124,11 @@ export async function dispatchHook(
   input: HookInput,
   context: HookContext
 ): HandlerResult {
-  if (context.host === HostKind.codex)
-    return new CodexSessionStore(context.store.config.stateDirectory).withLock(
-      input.session_id,
-      () => dispatchCodexHook(input, context)
-    )
+  if (getHostDefinition(context.host).planBinding === PlanBindingKind.session)
+    return new ReviewSessionStore(
+      context.store.config.stateDirectory,
+      context.host
+    ).withLock(input.session_id, () => dispatchNativeReviewHook(input, context))
   return await match(input)
     .with({ hook_event_name: HookEventName.Stop }, () => HookOutput.none())
     .with({ hook_event_name: HookEventName.PreToolUse }, preToolUse =>

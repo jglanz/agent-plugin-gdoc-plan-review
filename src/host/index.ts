@@ -1,3 +1,6 @@
 export * from "./HostRuntime.js"
-export * from "./CodexSessionStore.js"
+export * from "./HostRegistry.js"
+export * from "./ReviewSessionStore.js"
 export * from "./CodexSupport.js"
+export * from "./NativeReviewProtocol.js"
+export * from "./opencode/index.js"

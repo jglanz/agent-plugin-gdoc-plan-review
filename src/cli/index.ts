@@ -98,7 +98,7 @@ export function createCliParser(argv: string[]): Argv {
       choices: Object.values(HostKind),
       default: HostKind.claude,
       global: true,
-      describe: "Host protocol and state directory (claude or codex)"
+      describe: "Harness protocol and state directory (claude, codex, opencode)"
     })
     .parserConfiguration(Cli.ParserConfiguration)
     .scriptName(Cli.ScriptName)

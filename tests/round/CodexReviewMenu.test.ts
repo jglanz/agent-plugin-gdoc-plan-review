@@ -1,6 +1,6 @@
 import { CodexReviewMenu } from "claude-gdoc-review-plugin"
 
-import { createCodexTestEnvironment } from "../support/codexTestSupport.js"
+import { createNativeTestEnvironment } from "../support/nativeReviewTestSupport.js"
 import {
   destroyHookTestEnvironment,
   HookTestEnvironment
@@ -9,7 +9,7 @@ import {
 describe("CodexReviewMenu", () => {
   let environment: HookTestEnvironment = null
   beforeEach(async () => {
-    environment = await createCodexTestEnvironment()
+    environment = await createNativeTestEnvironment()
   })
   afterEach(async () => {
     await destroyHookTestEnvironment(environment)

@@ -52,8 +52,8 @@ jobs:
       - name: Build
         run: pnpm run build
 
-      # dist/gdoc-review.cjs is committed so a plain clone or marketplace
-      # install runs the plugin with no install step. A rebuild that changes it
+      # Both dist/ bundles are committed so a clone or marketplace
+      # install runs the plugin with no install step. A rebuild that changes them
       # means the committed bundle does not match src/ — fail rather than ship
       # a stale runtime.
       - name: Check committed bundle is fresh

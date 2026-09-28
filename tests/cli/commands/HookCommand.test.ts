@@ -6,6 +6,10 @@ import {
   ExitPlanModeGateHandler,
   HookCommand,
   HookCommandName,
+  HookEventName,
+  HostKind,
+  HostToolName,
+  getNativeReviewProtocol,
   Logger,
   PermissionDecision
 } from "claude-gdoc-review-plugin"
@@ -285,6 +289,41 @@ describe("createHookCommand", () => {
       expect(HookCommand.isGatedEvent(null)).toBe(false)
       expect(HookCommand.isGatedEvent("PreToolUse")).toBe(false)
     })
+
+    it.each([HostKind.codex, HostKind.opencode])(
+      "fails closed for malformed %s native questions",
+      host => {
+        const toolName = getNativeReviewProtocol(host).toolName
+        expect(
+          HookCommand.isNativeQuestionEvent(
+            { hook_event_name: HookEventName.PreToolUse, tool_name: toolName },
+            host
+          )
+        ).toBe(true)
+        expect(
+          HookCommand.isNativeQuestionEvent(
+            { hook_event_name: HookEventName.PostToolUse, tool_name: toolName },
+            host
+          )
+        ).toBe(false)
+        expect(
+          HookCommand.isNativeQuestionEvent(
+            {
+              hook_event_name: HookEventName.PreToolUse,
+              tool_name: HostToolName.Bash
+            },
+            host
+          )
+        ).toBe(false)
+        expect(HookCommand.isNativeQuestionEvent(null, host)).toBe(false)
+        expect(
+          HookCommand.isNativeQuestionEvent(
+            { hook_event_name: HookEventName.PreToolUse, tool_name: toolName },
+            HostKind.claude
+          )
+        ).toBe(false)
+      }
+    )
 
     it("answers only the gated event with a deny", () => {
       const denied = HookCommand.newFailureOutputForRaw(true)
